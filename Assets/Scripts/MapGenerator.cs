@@ -1,4 +1,6 @@
+using Unity.Collections;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 
 public class MapGenerator : MonoBehaviour
@@ -8,8 +10,8 @@ public class MapGenerator : MonoBehaviour
     public MapDisplay mapDisplay;
     public bool autoUpdate;
     
-    [Min(1)] public int mapWidth;
-    [Min(1)] public int mapHeight;
+    [ReadOnly] public const int mapChunkSize = 241;
+    [Range(0,6)] public int levelOfDetail;
     [Min(0.0001f)] public float noiseScale;
 
     [Min(1)] public int octaves;
@@ -20,14 +22,14 @@ public class MapGenerator : MonoBehaviour
     public Vector2 Offset;
 
     [Min(0f)] public float meshHeightMultiplier;
-    [BoundedCurve] public AnimationCurve meshHeightCurve;
+    [BoundedCurve(0,-1f, 1f, 2f)] public AnimationCurve meshHeightCurve;
     
     public Gradient gradient;
     
     
     public void GenerateMap()
     {
-        float[,] noiseMap = Noise.GenerateNoiseMap(mapWidth, mapHeight, noiseScale, 
+        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, noiseScale, 
             seed,
             octaves, persistence, lacunarity,
             Offset);
@@ -43,14 +45,14 @@ public class MapGenerator : MonoBehaviour
             }
             case DrawMode.ColorMap:
             {
-                var texture = TextureGenerator.TextureFromColorMap(GetColorMapToGradient(noiseMap), mapWidth, mapHeight);
+                var texture = TextureGenerator.TextureFromColorMap(GetColorMapToGradient(noiseMap), mapChunkSize, mapChunkSize);
                 mapDisplay.DrawTexture(texture);
                 break;
             }
             case DrawMode.Mesh:
             {
-                var texture = TextureGenerator.TextureFromColorMap(GetColorMapToGradient(noiseMap), mapWidth, mapHeight);
-                MeshData meshData = MeshGenerator.GenerateTerrainMesh(noiseMap, meshHeightMultiplier, meshHeightCurve);
+                var texture = TextureGenerator.TextureFromColorMap(GetColorMapToGradient(noiseMap), mapChunkSize, mapChunkSize);
+                MeshData meshData = MeshGenerator.GenerateTerrainMesh(noiseMap, meshHeightMultiplier, meshHeightCurve, levelOfDetail);
                 mapDisplay.DrawMesh(meshData, texture);
                 break;
             }
@@ -59,13 +61,13 @@ public class MapGenerator : MonoBehaviour
 
     private Color[] GetColorMapToGradient(float[,] noiseMap)
     {
-        Color[] colorMap = new Color[mapWidth * mapHeight];
-        for (int y = 0; y < mapHeight; y++)
+        Color[] colorMap = new Color[mapChunkSize * mapChunkSize];
+        for (int y = 0; y < mapChunkSize; y++)
         {
-            for (int x = 0; x < mapWidth; x++)
+            for (int x = 0; x < mapChunkSize; x++)
             {
                 float currentHeight = noiseMap[x, y];
-                colorMap[y * mapWidth + x] = gradient.Evaluate(currentHeight);
+                colorMap[y * mapChunkSize + x] = gradient.Evaluate(currentHeight);
             }
         }
 
