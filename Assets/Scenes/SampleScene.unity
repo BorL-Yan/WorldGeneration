@@ -669,8 +669,8 @@ MonoBehaviour:
   drawMode: 2
   mapDisplay: {fileID: 2000507172}
   autoUpdate: 0
-  levelOfDetail: 0
-  noiseScale: 35.23
+  editorPreviewLOD: 0
+  noiseScale: 40
   octaves: 3
   persistence: 0.173
   lacunarity: 4.33
@@ -782,6 +782,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f520e51dbb2a4b89943d654e96c001c9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EndlessTerrain
+  detailLevels:
+  - lod: 0
+    visibleDstThreshold: 100
+  - lod: 3
+    visibleDstThreshold: 300
+  - lod: 6
+    visibleDstThreshold: 600
   viewer: {fileID: 1127439306}
   mapMaterial: {fileID: 2100000, guid: 9e096131ff12f0e4aaaa08949d8a6ef4, type: 2}
 --- !u!1660057539 &9223372036854775807
