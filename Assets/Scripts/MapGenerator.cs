@@ -1,5 +1,5 @@
-using System;
 using UnityEngine;
+
 
 public class MapGenerator : MonoBehaviour
 {
@@ -15,12 +15,13 @@ public class MapGenerator : MonoBehaviour
     [Min(1)] public int octaves;
     [Range(0f,1f)] public float persistence;
     [Min(1f)] public float lacunarity;
-
+    
     public int seed;
     public Vector2 Offset;
 
-    public TerrainType[] terrainRegions;
-
+    [Min(0f)] public float meshHeightMultiplier;
+    [BoundedCurve] public AnimationCurve meshHeightCurve;
+    
     public Gradient gradient;
     
     
@@ -31,35 +32,51 @@ public class MapGenerator : MonoBehaviour
             octaves, persistence, lacunarity,
             Offset);
         
-        Texture2D texture = null;
         
         switch (drawMode)
         {
             case DrawMode.NoiseMap:
             {
-                texture = TextureGenerator.TextureFromHeightMap(noiseMap);
+                var texture = TextureGenerator.TextureFromHeightMap(noiseMap);
+                mapDisplay.DrawTexture(texture);
                 break;
             }
             case DrawMode.ColorMap:
             {
-                Color[] colorMap = new Color[mapWidth * mapHeight];
-                for (int y = 0; y < mapHeight; y++)
-                {
-                    for (int x = 0; x < mapWidth; x++)
-                    {
-                        float currentHeight = noiseMap[x, y];
-                        colorMap[y * mapWidth + x] = gradient.Evaluate(currentHeight);
-                    }
-                }
-                texture = TextureGenerator.TextureFromColorMap(colorMap, mapWidth, mapHeight);
+                var texture = TextureGenerator.TextureFromColorMap(GetColorMapToGradient(noiseMap), mapWidth, mapHeight);
+                mapDisplay.DrawTexture(texture);
+                break;
+            }
+            case DrawMode.Mesh:
+            {
+                var texture = TextureGenerator.TextureFromColorMap(GetColorMapToGradient(noiseMap), mapWidth, mapHeight);
+                MeshData meshData = MeshGenerator.GenerateTerrainMesh(noiseMap, meshHeightMultiplier, meshHeightCurve);
+                mapDisplay.DrawMesh(meshData, texture);
                 break;
             }
         }
-        mapDisplay.DrawTexture(texture);
+    }
+
+    private Color[] GetColorMapToGradient(float[,] noiseMap)
+    {
+        Color[] colorMap = new Color[mapWidth * mapHeight];
+        for (int y = 0; y < mapHeight; y++)
+        {
+            for (int x = 0; x < mapWidth; x++)
+            {
+                float currentHeight = noiseMap[x, y];
+                colorMap[y * mapWidth + x] = gradient.Evaluate(currentHeight);
+            }
+        }
+
+        return colorMap;
     }
 }
 
-public enum DrawMode {NoiseMap, ColorMap}
+
+
+
+public enum DrawMode {NoiseMap, ColorMap, Mesh}
 
 [System.Serializable]
 public struct TerrainType
