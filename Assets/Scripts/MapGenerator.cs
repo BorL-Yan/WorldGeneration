@@ -9,6 +9,7 @@ using UnityEngine.Serialization;
 public class MapGenerator : MonoBehaviour
 {
     public DrawMode drawMode;
+    public Noise.NormalizeMode normalizeMode;
 
     public MapDisplay mapDisplay;
     public bool autoUpdate;
@@ -23,17 +24,19 @@ public class MapGenerator : MonoBehaviour
     
     public int seed;
     public Vector2 Offset;
+    public bool useFalloff;
 
     [Min(0f)] public float meshHeightMultiplier;
-    [BoundedCurve(0,-1f, 1f, 2f)] public AnimationCurve meshHeightCurve;
+    [BoundedCurve(0,-1f, 1f, 2.5f)] public AnimationCurve meshHeightCurve;
     
     public Gradient gradient;
-
+    public float[,] falloff;
     private Queue<MapThreadInfo<MapData>> mapDataThreadInfoQueue = new();
     private Queue<MapThreadInfo<MeshData>> meshDataThreadInfoQueue = new();
     
     public void DrawMapEditor()
     {
+        falloff = FalloffGenerator.GeneratorFalloffMap(mapChunkSize);
         MapData mapData = GenerateMapData(Vector2.zero);
         
         switch (drawMode)
@@ -57,6 +60,13 @@ public class MapGenerator : MonoBehaviour
                 mapDisplay.DrawMesh(meshData, texture);
                 break;
             }
+            case DrawMode.FalloffMap:
+            {
+                var texture = TextureGenerator.TextureFromHeightMap(FalloffGenerator.GeneratorFalloffMap(mapChunkSize));
+                mapDisplay.DrawTexture(texture);
+                break;
+            }
+                
         }
     }
 
@@ -128,7 +138,7 @@ public class MapGenerator : MonoBehaviour
         float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, noiseScale, 
             seed,
             octaves, persistence, lacunarity,
-            Offset + center);
+            Offset + center, normalizeMode);
 
         return new MapData(noiseMap, GetColorMapToGradient(noiseMap));
     }
@@ -140,11 +150,15 @@ public class MapGenerator : MonoBehaviour
         {
             for (int x = 0; x < mapChunkSize; x++)
             {
+                if (useFalloff)
+                {
+                    noiseMap[x, y] = Mathf.Clamp01(noiseMap[x, y] - falloff[x, y]);
+                }
+                
                 float currentHeight = noiseMap[x, y];
                 colorMap[y * mapChunkSize + x] = gradient.Evaluate(currentHeight);
             }
         }
-
         return colorMap;
     }
 
@@ -165,7 +179,7 @@ public class MapGenerator : MonoBehaviour
 
 
 
-public enum DrawMode {NoiseMap, ColorMap, Mesh}
+public enum DrawMode {NoiseMap, ColorMap, Mesh, FalloffMap}
 
 [System.Serializable]
 public struct TerrainType
